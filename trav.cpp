@@ -1,386 +1,195 @@
-#include <QApplication>
-#include <QWidget>
-#include <QLabel>
-#include <QLineEdit>
-#include <QDoubleSpinBox>
-#include <QSpinBox>
-#include <QPushButton>
-#include <QTableWidget>
-#include <QTableWidgetItem>
-#include <QComboBox>
-#include <QTextEdit>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QFormLayout>
-#include <QGroupBox>
-#include <QMessageBox>
-#include <QString>
-#include <vector>
+import streamlit as st
+import pandas as pd
 
-using namespace std;
+st.set_page_config(
+    page_title="Travel Package Manager",
+    page_icon="🌍",
+    layout="wide"
+)
 
-struct TravelPackage {
-    QString destination;
-    QString state;
-    QString weatherCondition;
-    double temperature;
-    QString requiredClothing;
-    double distance;
-    double travelCost;
-    double hotelCostPerDay;
-    double foodCostPerDay;
-    int availableDays;
-};
+st.title("🌍 Travel Package Manager")
+st.write("Find travel destinations, weather conditions, required clothing, distance, and estimated cost.")
 
-class TravelPackageManager : public QWidget {
-    Q_OBJECT
-
-public:
-    TravelPackageManager(QWidget *parent = nullptr) : QWidget(parent) {
-        setWindowTitle("Travel Package Manager");
-        resize(1000, 650);
-
-        createPackages();
-        setupUI();
-
-        table->setRowCount(packages.size());
-
-        for (int i = 0; i < packages.size(); ++i) {
-            updateTableRow(i);
-        }
+packages = pd.DataFrame([
+    {
+        "Destination": "Goa",
+        "State/Country": "India",
+        "Weather": "Hot and Humid",
+        "Temperature (°C)": 31.0,
+        "Required Clothing": "Cotton clothes, sunglasses, hat and slippers",
+        "Distance (km)": 650.0,
+        "Travel Cost per Person": 2500.0,
+        "Hotel Cost per Day": 1800.0,
+        "Food Cost per Day": 800.0,
+        "Available Days": 10
+    },
+    {
+        "Destination": "Manali",
+        "State/Country": "Himachal Pradesh",
+        "Weather": "Cold and Snowy",
+        "Temperature (°C)": 5.0,
+        "Required Clothing": "Jacket, sweater, gloves, woollen cap and boots",
+        "Distance (km)": 2200.0,
+        "Travel Cost per Person": 7000.0,
+        "Hotel Cost per Day": 2500.0,
+        "Food Cost per Day": 1000.0,
+        "Available Days": 12
+    },
+    {
+        "Destination": "Mysuru",
+        "State/Country": "Karnataka",
+        "Weather": "Pleasant",
+        "Temperature (°C)": 24.0,
+        "Required Clothing": "Comfortable cotton clothes and walking shoes",
+        "Distance (km)": 180.0,
+        "Travel Cost per Person": 1200.0,
+        "Hotel Cost per Day": 1200.0,
+        "Food Cost per Day": 600.0,
+        "Available Days": 7
+    },
+    {
+        "Destination": "Ooty",
+        "State/Country": "Tamil Nadu",
+        "Weather": "Cool and Cloudy",
+        "Temperature (°C)": 15.0,
+        "Required Clothing": "Light jacket, jeans and comfortable shoes",
+        "Distance (km)": 270.0,
+        "Travel Cost per Person": 1800.0,
+        "Hotel Cost per Day": 1500.0,
+        "Food Cost per Day": 700.0,
+        "Available Days": 8
+    },
+    {
+        "Destination": "Rajasthan",
+        "State/Country": "India",
+        "Weather": "Hot and Dry",
+        "Temperature (°C)": 35.0,
+        "Required Clothing": "Loose cotton clothes, scarf, sunglasses and sunscreen",
+        "Distance (km)": 1800.0,
+        "Travel Cost per Person": 6000.0,
+        "Hotel Cost per Day": 2000.0,
+        "Food Cost per Day": 900.0,
+        "Available Days": 10
     }
+])
 
-private slots:
-    void addPackage() {
-        if (destinationEdit->text().isEmpty()) {
-            QMessageBox::warning(this, "Error", "Please enter destination name.");
-            return;
-        }
+menu = st.sidebar.radio(
+    "Menu",
+    [
+        "View Travel Packages",
+        "Weather and Clothing",
+        "Cost Calculator",
+        "Add New Package"
+    ]
+)
 
-        TravelPackage package;
-        package.destination = destinationEdit->text();
-        package.state = stateEdit->text();
-        package.weatherCondition = weatherBox->currentText();
-        package.temperature = temperatureSpin->value();
-        package.requiredClothing = clothingEdit->text();
-        package.distance = distanceSpin->value();
-        package.travelCost = travelCostSpin->value();
-        package.hotelCostPerDay = hotelCostSpin->value();
-        package.foodCostPerDay = foodCostSpin->value();
-        package.availableDays = daysSpin->value();
+if menu == "View Travel Packages":
+    st.subheader("Available Travel Packages")
 
-        packages.append(package);
+    search = st.text_input("Search destination")
 
-        int row = table->rowCount();
-        table->insertRow(row);
-        updateTableRow(row);
+    if search:
+        filtered = packages[
+            packages["Destination"].str.lower().str.contains(search.lower())
+        ]
+    else:
+        filtered = packages
 
-        QMessageBox::information(this, "Success", "Travel package added successfully.");
+    st.dataframe(filtered, use_container_width=True)
 
-        destinationEdit->clear();
-        stateEdit->clear();
-        clothingEdit->clear();
-    }
+elif menu == "Weather and Clothing":
+    st.subheader("Weather and Required Clothing")
 
-    void showWeatherInfo() {
-        int row = table->currentRow();
+    destination = st.selectbox(
+        "Select destination",
+        packages["Destination"].unique()
+    )
 
-        if (row < 0) {
-            QMessageBox::warning(this, "Select Package", "Please select a travel package.");
-            return;
-        }
+    selected = packages[packages["Destination"] == destination].iloc[0]
 
-        const TravelPackage &package = packages[row];
+    st.info(
+        f"**Destination:** {selected['Destination']}\n\n"
+        f"**Weather:** {selected['Weather']}\n\n"
+        f"**Temperature:** {selected['Temperature (°C)']} °C\n\n"
+        f"**Required Clothing:** {selected['Required Clothing']}"
+    )
 
-        QString message;
-        message += "Destination: " + package.destination + "\n";
-        message += "Weather Condition: " + package.weatherCondition + "\n";
-        message += "Temperature: " + QString::number(package.temperature) + " °C\n";
-        message += "Required Clothing: " + package.requiredClothing;
+elif menu == "Cost Calculator":
+    st.subheader("Travel Cost Calculator")
 
-        QMessageBox::information(this, "Weather and Clothing", message);
-    }
+    destination = st.selectbox(
+        "Select destination",
+        packages["Destination"].unique()
+    )
 
-    void calculateCost() {
-        int row = table->currentRow();
+    selected = packages[packages["Destination"] == destination].iloc[0]
 
-        if (row < 0) {
-            QMessageBox::warning(this, "Select Package", "Please select a travel package.");
-            return;
-        }
+    days = st.number_input(
+        "Number of travel days",
+        min_value=1,
+        max_value=int(selected["Available Days"]),
+        value=3
+    )
 
-        int days = tripDaysSpin->value();
-        int persons = personsSpin->value();
-        const TravelPackage &package = packages[row];
+    persons = st.number_input(
+        "Number of persons",
+        min_value=1,
+        max_value=50,
+        value=2
+    )
 
-        if (days > package.availableDays) {
-            QMessageBox::warning(
-                this,
-                "Invalid Days",
-                "This package is available only for " +
-                QString::number(package.availableDays) + " days."
-            );
-            return;
-        }
+    transport_cost = selected["Travel Cost per Person"] * persons
+    hotel_cost = selected["Hotel Cost per Day"] * days * persons
+    food_cost = selected["Food Cost per Day"] * days * persons
+    total_cost = transport_cost + hotel_cost + food_cost
 
-        double transportCost = package.travelCost * persons;
-        double hotelCost = package.hotelCostPerDay * days * persons;
-        double foodCost = package.foodCostPerDay * days * persons;
-        double totalCost = transportCost + hotelCost + foodCost;
+    st.success(
+        f"**Destination:** {selected['Destination']}\n\n"
+        f"**Transport Cost:** Rs. {transport_cost:,.2f}\n\n"
+        f"**Hotel Cost:** Rs. {hotel_cost:,.2f}\n\n"
+        f"**Food Cost:** Rs. {food_cost:,.2f}\n\n"
+        f"### Total Cost: Rs. {total_cost:,.2f}"
+    )
 
-        QString result;
-        result += "Destination: " + package.destination + "\n";
-        result += "Days: " + QString::number(days) + "\n";
-        result += "Persons: " + QString::number(persons) + "\n\n";
-        result += "Transport Cost: Rs. " + QString::number(transportCost, 'f', 2) + "\n";
-        result += "Hotel Cost: Rs. " + QString::number(hotelCost, 'f', 2) + "\n";
-        result += "Food Cost: Rs. " + QString::number(foodCost, 'f', 2) + "\n\n";
-        result += "Total Cost: Rs. " + QString::number(totalCost, 'f', 2);
+elif menu == "Add New Package":
+    st.subheader("Add New Travel Package")
 
-        costOutput->setPlainText(result);
-    }
-
-    void searchPackage() {
-        QString searchText = searchEdit->text().trimmed().toLower();
-
-        if (searchText.isEmpty()) {
-            for (int i = 0; i < table->rowCount(); ++i) {
-                table->setRowHidden(i, false);
-            }
-            return;
-        }
-
-        for (int i = 0; i < packages.size(); ++i) {
-            bool match = packages[i].destination.toLower().contains(searchText);
-            table->setRowHidden(i, !match);
-        }
-    }
-
-    void deletePackage() {
-        int row = table->currentRow();
-
-        if (row < 0) {
-            QMessageBox::warning(this, "Select Package", "Please select a travel package.");
-            return;
-        }
-
-        int reply = QMessageBox::question(
-            this,
-            "Delete Package",
-            "Are you sure you want to delete this package?",
-            QMessageBox::Yes | QMessageBox::No
-        );
-
-        if (reply == QMessageBox::Yes) {
-            packages.removeAt(row);
-            table->removeRow(row);
-        }
-    }
-
-private:
-    QVector<TravelPackage> packages;
-
-    QTableWidget *table;
-    QLineEdit *destinationEdit;
-    QLineEdit *stateEdit;
-    QLineEdit *clothingEdit;
-    QLineEdit *searchEdit;
-
-    QComboBox *weatherBox;
-
-    QDoubleSpinBox *temperatureSpin;
-    QDoubleSpinBox *distanceSpin;
-    QDoubleSpinBox *travelCostSpin;
-    QDoubleSpinBox *hotelCostSpin;
-    QDoubleSpinBox *foodCostSpin;
-
-    QSpinBox *daysSpin;
-    QSpinBox *personsSpin;
-    QSpinBox *tripDaysSpin;
-
-    QTextEdit *costOutput;
-
-    void createPackages() {
-        packages.append({
-            "Goa", "India", "Hot and Humid", 31.0,
-            "Cotton clothes, sunglasses, hat and slippers",
-            650.0, 2500.0, 1800.0, 800.0, 10
-        });
-
-        packages.append({
-            "Manali", "Himachal Pradesh", "Cold and Snowy", 5.0,
-            "Jacket, sweater, gloves, woollen cap and boots",
-            2200.0, 7000.0, 2500.0, 1000.0, 12
-        });
-
-        packages.append({
-            "Mysuru", "Karnataka", "Pleasant", 24.0,
-            "Comfortable cotton clothes and walking shoes",
-            180.0, 1200.0, 1200.0, 600.0, 7
-        });
-
-        packages.append({
-            "Ooty", "Tamil Nadu", "Cool and Cloudy", 15.0,
-            "Light jacket, jeans and comfortable shoes",
-            270.0, 1800.0, 1500.0, 700.0, 8
-        });
-
-        packages.append({
-            "Rajasthan", "India", "Hot and Dry", 35.0,
-            "Loose cotton clothes, scarf, sunglasses and sunscreen",
-            1800.0, 6000.0, 2000.0, 900.0, 10
-        });
-    }
-
-    void setupUI() {
-        table = new QTableWidget(this);
-        table->setColumnCount(8);
-        table->setHorizontalHeaderLabels({
-            "Destination",
-            "Weather",
-            "Temperature",
-            "Clothing",
-            "Distance (km)",
-            "Travel Cost",
-            "Hotel Cost/Day",
-            "Food Cost/Day"
-        });
-
-        table->horizontalHeader()->setStretchLastSection(true);
-        table->setSelectionBehavior(QAbstractItemView::SelectRows);
-        table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-
-        destinationEdit = new QLineEdit;
-        stateEdit = new QLineEdit;
-        clothingEdit = new QLineEdit;
-        searchEdit = new QLineEdit;
-        searchEdit->setPlaceholderText("Search destination...");
-
-        weatherBox = new QComboBox;
-        weatherBox->addItems({
+    destination = st.text_input("Destination")
+    state = st.text_input("State/Country")
+    weather = st.selectbox(
+        "Weather condition",
+        [
             "Hot and Humid",
             "Hot and Dry",
             "Cold and Snowy",
             "Cool and Cloudy",
             "Rainy",
             "Pleasant"
-        });
+        ]
+    )
+    temperature = st.number_input("Temperature (°C)", value=25.0)
+    clothing = st.text_input("Required clothing")
+    distance = st.number_input("Distance (km)", value=100.0)
+    travel_cost = st.number_input("Travel cost per person", value=1000.0)
+    hotel_cost = st.number_input("Hotel cost per day", value=1000.0)
+    food_cost = st.number_input("Food cost per day", value=500.0)
+    available_days = st.number_input("Available days", min_value=1, value=5)
 
-        temperatureSpin = new QDoubleSpinBox;
-        temperatureSpin->setRange(-50.0, 60.0);
-        temperatureSpin->setValue(25.0);
+    if st.button("Add Package"):
+        new_package = pd.DataFrame([{
+            "Destination": destination,
+            "State/Country": state,
+            "Weather": weather,
+            "Temperature (°C)": temperature,
+            "Required Clothing": clothing,
+            "Distance (km)": distance,
+            "Travel Cost per Person": travel_cost,
+            "Hotel Cost per Day": hotel_cost,
+            "Food Cost per Day": food_cost,
+            "Available Days": available_days
+        }])
 
-        distanceSpin = new QDoubleSpinBox;
-        distanceSpin->setRange(0.0, 100000.0);
-        distanceSpin->setValue(100.0);
+        packages = pd.concat([packages, new_package], ignore_index=True)
 
-        travelCostSpin = new QDoubleSpinBox;
-        travelCostSpin->setRange(0.0, 1000000.0);
-        travelCostSpin->setValue(1000.0);
-
-        hotelCostSpin = new QDoubleSpinBox;
-        hotelCostSpin->setRange(0.0, 1000000.0);
-        hotelCostSpin->setValue(1000.0);
-
-        foodCostSpin = new QDoubleSpinBox;
-        foodCostSpin->setRange(0.0, 1000000.0);
-        foodCostSpin->setValue(500.0);
-
-        daysSpin = new QSpinBox;
-        daysSpin->setRange(1, 365);
-        daysSpin->setValue(5);
-
-        tripDaysSpin = new QSpinBox;
-        tripDaysSpin->setRange(1, 365);
-        tripDaysSpin->setValue(3);
-
-        personsSpin = new QSpinBox;
-        personsSpin->setRange(1, 100);
-        personsSpin->setValue(2);
-
-        costOutput = new QTextEdit;
-        costOutput->setReadOnly(true);
-
-        QPushButton *addButton = new QPushButton("Add Package");
-        QPushButton *weatherButton = new QPushButton("Show Weather & Clothing");
-        QPushButton *costButton = new QPushButton("Calculate Total Cost");
-        QPushButton *deleteButton = new QPushButton("Delete Selected Package");
-        QPushButton *searchButton = new QPushButton("Search");
-
-        connect(addButton, &QPushButton::clicked, this, &TravelPackageManager::addPackage);
-        connect(weatherButton, &QPushButton::clicked, this, &TravelPackageManager::showWeatherInfo);
-        connect(costButton, &QPushButton::clicked, this, &TravelPackageManager::calculateCost);
-        connect(deleteButton, &QPushButton::clicked, this, &TravelPackageManager::deletePackage);
-        connect(searchButton, &QPushButton::clicked, this, &TravelPackageManager::searchPackage);
-        connect(searchEdit, &QLineEdit::textChanged, this, &TravelPackageManager::searchPackage);
-
-        QFormLayout *formLayout = new QFormLayout;
-        formLayout->addRow("Destination:", destinationEdit);
-        formLayout->addRow("State/Country:", stateEdit);
-        formLayout->addRow("Weather:", weatherBox);
-        formLayout->addRow("Temperature (°C):", temperatureSpin);
-        formLayout->addRow("Required Clothing:", clothingEdit);
-        formLayout->addRow("Distance (km):", distanceSpin);
-        formLayout->addRow("Travel Cost per Person:", travelCostSpin);
-        formLayout->addRow("Hotel Cost per Day:", hotelCostSpin);
-        formLayout->addRow("Food Cost per Day:", foodCostSpin);
-        formLayout->addRow("Available Days:", daysSpin);
-
-        QGroupBox *packageGroupBox = new QGroupBox("Add New Travel Package");
-        packageGroupBox->setLayout(formLayout);
-
-        QHBoxLayout *searchLayout = new QHBoxLayout;
-        searchLayout->addWidget(searchEdit);
-        searchLayout->addWidget(searchButton);
-
-        QHBoxLayout *buttonLayout = new QHBoxLayout;
-        buttonLayout->addWidget(weatherButton);
-        buttonLayout->addWidget(costButton);
-        buttonLayout->addWidget(deleteButton);
-
-        QFormLayout *costLayout = new QFormLayout;
-        costLayout->addRow("Trip Days:", tripDaysSpin);
-        costLayout->addRow("Number of Persons:", personsSpin);
-
-        QGroupBox *costGroupBox = new QGroupBox("Cost Calculator");
-        costGroupBox->setLayout(costLayout);
-
-        QVBoxLayout *rightLayout = new QVBoxLayout;
-        rightLayout->addWidget(packageGroupBox);
-        rightLayout->addLayout(searchLayout);
-        rightLayout->addLayout(buttonLayout);
-        rightLayout->addWidget(costGroupBox);
-        rightLayout->addWidget(new QLabel("Cost Estimate:"));
-        rightLayout->addWidget(costOutput);
-
-        QHBoxLayout *mainLayout = new QHBoxLayout;
-        mainLayout->addWidget(table, 3);
-        mainLayout->addLayout(rightLayout, 2);
-
-        setLayout(mainLayout);
-    }
-
-    void updateTableRow(int row) {
-        const TravelPackage &package = packages[row];
-
-        table->setItem(row, 0, new QTableWidgetItem(package.destination));
-        table->setItem(row, 1, new QTableWidgetItem(package.weatherCondition));
-        table->setItem(row, 2, new QTableWidgetItem(QString::number(package.temperature) + " °C"));
-        table->setItem(row, 3, new QTableWidgetItem(package.requiredClothing));
-        table->setItem(row, 4, new QTableWidgetItem(QString::number(package.distance)));
-        table->setItem(row, 5, new QTableWidgetItem("Rs. " + QString::number(package.travelCost)));
-        table->setItem(row, 6, new QTableWidgetItem("Rs. " + QString::number(package.hotelCostPerDay)));
-        table->setItem(row, 7, new QTableWidgetItem("Rs. " + QString::number(package.foodCostPerDay)));
-    }
-};
-
-#include "main.moc"
-
-int main(int argc, char *argv[]) {
-    QApplication app(argc, argv);
-
-    TravelPackageManager window;
-    window.show();
-
-    return app.exec();
-}
+        st.success(f"Package for {destination} added successfully.")
+        st.dataframe(packages, use_container_width=True)
